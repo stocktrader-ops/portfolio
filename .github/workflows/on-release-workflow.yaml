@@ -32,7 +32,6 @@ env:
   GITOPS_DIR: application
   GITOPS_USERNAME: ${{ secrets.GITOPS_USERNAME }}
   GITOPS_TOKEN: ${{ secrets.GITOPS_TOKEN }}
-  GITHUB_REF: ${GITHUB_REF#refs/tags/}
   
 jobs:
   setup-build-publish-deploy:
@@ -47,6 +46,9 @@ jobs:
     # Checkout app repo
     - name: Checkout
       uses: actions/checkout@v2
+      
+    - name: Set env
+      run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF#refs/*/})      
       
 
     # Setup java
@@ -77,17 +79,18 @@ jobs:
     # Build the Docker image
     - name: Build with Docker
       run: |
-        echo "Tag name: $GITHUB_REF"
+        echo "Tag name: $RELEASE_VERSION"
         echo "Tag name trimmed: ${GITHUB_REF#refs/tags/}"
-        docker build -t "$REGISTRY"/"$REGISTRY_NAMESPACE"/"$IMAGE_NAME":"$GITHUB_REF" .
+        echo ${{ env.RELEASE_VERSION }}
+        docker build -t "$REGISTRY"/"$REGISTRY_NAMESPACE"/"$IMAGE_NAME":"$RELEASE_VERSION" .
 
     # Push the image to Image Registry
     - name: Push the image to Registry
       id: push-to-registry
       run: |
         docker login -u="$REGISTRY_USER" -p="$REGISTRY_PASSWORD" "$REGISTRY"
-        docker push $REGISTRY/$REGISTRY_NAMESPACE/$IMAGE_NAME:$GITHUB_REF
-        echo '::set-output name=image-registry-path::$REGISTRY_HOSTNAME/$REGISTRY_NAMESPACE/$IMAGE_NAME:$GITHUB_REF' 
+        docker push $REGISTRY/$REGISTRY_NAMESPACE/$IMAGE_NAME:$RELEASE_VERSION
+        echo '::set-output name=image-registry-path::$REGISTRY_HOSTNAME/$REGISTRY_NAMESPACE/$IMAGE_NAME:$RELEASE_VERSION' 
 
   update-gitops-repo:
     name: Publish image updates to gitops repo
@@ -114,7 +117,7 @@ jobs:
         
         ## update manifests to new image and tag
         APP_IMAGE="$REGISTRY/$REGISTRY_NAMESPACE/$IMAGE_NAME"
-        VERSION="$GITHUB_REF"
+        VERSION="$RELEASE_VERSION"
         echo "image-registry-path: ${{needs.setup-build-publish-deploy.image-registry-path}}"
         echo "${APP_IMAGE}"
         echo "${VERSION}"
