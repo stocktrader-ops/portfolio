@@ -39,6 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image-registry-path: ${{ steps.push-to-registry.outputs.image-registry-path }}
+      image-registry-path-app: ${{ steps.push-to-registry.outputs.image-registry-path-app }}
+      image-registry-path-tag: ${{ steps.push-to-registry.outputs.image-registry-path-tag }}
       unit-test-result: ${{ steps.unit-test.outputs.unit-test-result }}
     environment: production
     steps:
@@ -95,6 +97,8 @@ jobs:
         echo "Image path: $IMAGE_PATH"
         
         echo "::set-output name=image-registry-path::$IMAGE_PATH"
+        echo "::set-output name=image-registry-path-app::$REGISTRY/$REGISTRY_NAMESPACE/$IMAGE_NAME"
+        echo "::set-output name=image-registry-path-tag::$RELEASE_VERSION"
 
   update-gitops-repo:
     name: Publish image updates to gitops repo
@@ -120,8 +124,8 @@ jobs:
         cd gitops
         
         ## update manifests to new image and tag
-        APP_IMAGE="$REGISTRY/$REGISTRY_NAMESPACE/$IMAGE_NAME"
-        VERSION="${GITHUB_REF#refs/*/}"
+        APP_IMAGE="${{needs.setup-build-publish-deploy.outputs.image-registry-path-app}}"
+        VERSION="${{needs.setup-build-publish-deploy.outputs.image-registry-path-tag}}"
         echo "image-registry-path2: ${{needs.setup-build-publish-deploy.outputs.image-registry-path}}"
         echo "${APP_IMAGE}"
         echo "${VERSION}"
