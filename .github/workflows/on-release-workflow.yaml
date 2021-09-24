@@ -118,7 +118,7 @@ jobs:
         ## update manifests to new image and tag
         APP_IMAGE="$REGISTRY/$REGISTRY_NAMESPACE/$IMAGE_NAME"
         VERSION="${GITHUB_REF#refs/*/}"
-        echo "image-registry-path: ${{needs.setup-build-publish-deploy.outputs.image-registry-path}}"
+        echo "image-registry-path2: ${{needs.setup-build-publish-deploy.outputs.image-registry-path}}"
         echo "${APP_IMAGE}"
         echo "${VERSION}"
 
